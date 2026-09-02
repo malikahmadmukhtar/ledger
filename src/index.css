@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-paper text-ink font-body;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 34px,
+    rgba(20, 33, 61, 0.05) 35px
+  );
+}
+
+.num {
+  @apply font-mono tabular-nums;
+}
+
+.amount-credit {
+  @apply font-mono tabular-nums text-credit;
+}
+
+.amount-debit {
+  @apply font-mono tabular-nums text-debit;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+::selection {
+  background: #C79A3E55;
+}
+
+*:focus-visible {
+  outline: 2px solid #C79A3E;
+  outline-offset: 2px;
+}
