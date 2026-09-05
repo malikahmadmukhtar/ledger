@@ -8,7 +8,7 @@ import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
 import StatCard from '../components/StatCard.jsx'
 import EntryCard from '../components/EntryCard.jsx'
-import { formatMoney, shortDate } from '../format.js'
+import { formatMoney, shortDate, displayCategory } from '../format.js'
 
 const PIE_COLORS = ['#A63D40', '#C79A3E', '#2F6F4E', '#6B7280', '#8B5E3C', '#7C6FA6']
 
@@ -163,7 +163,7 @@ export default function Dashboard() {
             <EntryCard
               key={t._id}
               date={t.date}
-              primary={t.category}
+              primary={displayCategory(t)}
               amount={formatMoney(t.amount, { sign: t.type === 'income' ? '+' : '-' })}
               amountClassName={t.type === 'income' ? 'text-credit' : 'text-debit'}
             />
@@ -177,7 +177,7 @@ export default function Dashboard() {
             {data.recent.map((t) => (
               <tr key={t._id} className="border-b border-rule/40 last:border-0">
                 <td className="py-2 text-ink/50 font-mono w-20">{shortDate(t.date)}</td>
-                <td className="py-2">{t.category}</td>
+                <td className="py-2">{displayCategory(t)}</td>
                 <td className={`py-2 text-right font-mono ${t.type === 'income' ? 'text-credit' : 'text-debit'}`}>
                   {formatMoney(t.amount, { sign: t.type === 'income' ? '+' : '-' })}
                 </td>

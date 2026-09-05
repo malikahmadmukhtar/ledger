@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useAuth } from '../context/AuthContext.jsx'
 import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
@@ -11,6 +12,35 @@ const STARTER_PROMPTS = [
 ]
 
 const CONTEXT_LIMIT = 5
+
+const mdComponents = {
+  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+  ul: ({ children }) => <ul className="mb-2 last:mb-0 list-disc pl-4 space-y-0.5">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 last:mb-0 list-decimal pl-4 space-y-0.5">{children}</ol>,
+  li: ({ children }) => <li className="leading-snug">{children}</li>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noreferrer" className="underline text-brass hover:opacity-80">
+      {children}
+    </a>
+  ),
+  code: ({ children, className }) => {
+    const block = className?.includes('language-')
+    if (block) {
+      return (
+        <code className="block font-mono text-[0.85em] bg-ink/5 px-2 py-1.5 rounded-sm overflow-x-auto my-2">
+          {children}
+        </code>
+      )
+    }
+    return <code className="font-mono text-[0.85em] bg-ink/5 px-1 rounded-sm">{children}</code>
+  },
+  pre: ({ children }) => <pre className="my-2 overflow-x-auto">{children}</pre>,
+  h1: ({ children }) => <p className="font-display text-base mb-2">{children}</p>,
+  h2: ({ children }) => <p className="font-display text-sm mb-1.5">{children}</p>,
+  h3: ({ children }) => <p className="font-semibold text-sm mb-1">{children}</p>,
+}
 
 export default function ChatPanel({ open, onClose }) {
   const { token, user } = useAuth()
@@ -154,7 +184,13 @@ export default function ChatPanel({ open, onClose }) {
                     : 'border border-rule/60 bg-white/40 text-ink'
                 }`}
               >
-                <p className="whitespace-pre-wrap">{m.content}</p>
+                {m.role === 'user' ? (
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                ) : (
+                  <div className="chat-md text-left">
+                    <ReactMarkdown components={mdComponents}>{m.content}</ReactMarkdown>
+                  </div>
+                )}
               </div>
             </div>
           ))}

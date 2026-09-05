@@ -14,3 +14,8 @@ export function formatMoney(n, { sign } = {}) {
 export function shortDate(d) {
   return new Date(d).toLocaleDateString(CURRENCY_LOCALE, { day: '2-digit', month: 'short' })
 }
+
+export function displayCategory({ category, note }) {
+  if (category === 'Other' && note?.trim()) return note.trim()
+  return category
+}

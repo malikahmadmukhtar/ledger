@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
-import { formatMoney, shortDate } from '../format.js'
+import { formatMoney, shortDate, displayCategory } from '../format.js'
 import EntryCard from './EntryCard.jsx'
 
 export default function TransactionManager({ type, title, categories, tone }) {
@@ -110,19 +110,23 @@ export default function TransactionManager({ type, title, categories, tone }) {
         {items.length === 0 && (
           <p className="py-8 text-center text-ink/40 text-sm">No {emptyLabel} in {range.label}.</p>
         )}
-        {items.map((t) => (
+        {items.map((t) => {
+          const label = displayCategory(t)
+          const showNote = t.note?.trim() && label !== t.note.trim()
+          return (
           <EntryCard
             key={t._id}
             date={t.date}
-            primary={t.category}
-            secondary={t.note}
+            primary={label}
+            secondary={showNote ? t.note : ''}
             amount={formatMoney(t.amount, { sign })}
             amountClassName={toneAmount}
             actions={
               <button onClick={() => remove(t._id)} className="text-ink/30 hover:text-debit text-xs">remove</button>
             }
           />
-        ))}
+          )
+        })}
       </div>
 
       <div className="border border-rule/60 bg-white/40 hidden md:block">
@@ -140,17 +144,21 @@ export default function TransactionManager({ type, title, categories, tone }) {
             {items.length === 0 && (
               <tr><td colSpan={5} className="py-8 text-center text-ink/40">No {emptyLabel} in {range.label}.</td></tr>
             )}
-            {items.map((t) => (
+            {items.map((t) => {
+              const label = displayCategory(t)
+              const showNote = t.note?.trim() && label !== t.note.trim()
+              return (
               <tr key={t._id} className="border-b border-rule/30 last:border-0 hover:bg-white/40">
                 <td className="py-2 px-4 font-mono text-ink/60">{shortDate(t.date)}</td>
-                <td className="py-2 px-4">{t.category}</td>
-                <td className="py-2 px-4 text-ink/50">{t.note}</td>
+                <td className="py-2 px-4">{label}</td>
+                <td className="py-2 px-4 text-ink/50">{showNote ? t.note : ''}</td>
                 <td className={`py-2 px-4 text-right font-mono ${toneAmount}`}>{formatMoney(t.amount, { sign })}</td>
                 <td className="py-2 px-4 text-right">
                   <button onClick={() => remove(t._id)} className="text-ink/30 hover:text-debit text-xs">remove</button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
