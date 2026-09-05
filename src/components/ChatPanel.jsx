@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../utils/chatStorage.js'
 
@@ -13,6 +14,7 @@ const CONTEXT_LIMIT = 5
 
 export default function ChatPanel({ open, onClose }) {
   const { token, user } = useAuth()
+  const { range } = usePeriod()
   const [messages, setMessages] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [input, setInput] = useState('')
@@ -53,7 +55,15 @@ export default function ChatPanel({ open, onClose }) {
 
     try {
       const history = messages.slice(-CONTEXT_LIMIT).map((m) => ({ role: m.role, content: m.content }))
-      const { reply } = await api.chat(token, { message: trimmed, history })
+      const { reply } = await api.chat(token, {
+        message: trimmed,
+        history,
+        from: range.apiFrom || null,
+        to: range.apiTo || null,
+        allTime: range.isAllTime,
+        cumulativeBalances: range.cumulativeBalances,
+        periodLabel: range.label,
+      })
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       setError(err.message)
@@ -90,7 +100,7 @@ export default function ChatPanel({ open, onClose }) {
         <header className="px-3 py-2.5 md:px-5 md:py-4 border-b border-rule/60 flex items-center justify-between shrink-0">
           <div>
             <p className="font-display text-base md:text-lg leading-tight">Ledger Assistant</p>
-            <p className="text-[9px] md:text-[10px] uppercase tracking-wider text-ink/40">Ask about your finances</p>
+            <p className="text-[9px] md:text-[10px] uppercase tracking-wider text-ink/40">{range.label}</p>
           </div>
           <div className="flex items-center gap-2">
             {messages.length > 0 && (

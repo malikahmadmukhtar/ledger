@@ -1,26 +1,35 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
 import { formatMoney, shortDate } from '../format.js'
 import EntryCard from '../components/EntryCard.jsx'
 
 export default function Cash() {
   const { token } = useAuth()
+  const { range, getQueryParams } = usePeriod()
   const [items, setItems] = useState([])
   const [direction, setDirection] = useState('lent')
   const [person, setPerson] = useState('')
   const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(range.formDate)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('open')
 
+  useEffect(() => {
+    setDate(range.formDate)
+  }, [range.formDate])
+
   function load() {
-    const params = filter === 'open' ? { settled: 'false' } : filter === 'settled' ? { settled: 'true' } : {}
+    const params = {
+      ...(filter === 'open' ? { settled: 'false' } : filter === 'settled' ? { settled: 'true' } : {}),
+      ...getQueryParams({ forBalances: true }),
+    }
     api.listCash(token, params).then(setItems).catch(() => {})
   }
 
-  useEffect(load, [token, filter])
+  useEffect(load, [token, filter, range.apiFrom, range.apiTo, range.isAllTime, range.cumulativeBalances])
 
   async function submit(e) {
     e.preventDefault()
@@ -28,7 +37,13 @@ export default function Cash() {
     if (!person.trim()) return setError('Enter who this involves')
     if (!amount || Number(amount) <= 0) return setError('Enter an amount greater than 0')
     try {
-      await api.createCash(token, { direction, person, amount: Number(amount), date, note })
+      await api.createCash(token, {
+        direction,
+        person: person.trim(),
+        amount: Number(amount),
+        date,
+        note: note.trim(),
+      })
       setPerson(''); setAmount(''); setNote('')
       load()
     } catch (err) {
@@ -48,12 +63,18 @@ export default function Cash() {
 
   const owedToMe = items.filter(i => i.direction === 'lent' && !i.settled).reduce((s, i) => s + i.amount, 0)
   const iOwe = items.filter(i => i.direction === 'borrowed' && !i.settled).reduce((s, i) => s + i.amount, 0)
+  const emptyMsg = range.cumulativeBalances
+    ? 'Nothing here yet.'
+    : `No cash entries in ${range.label}.`
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="font-display text-3xl">Cash — Give & Take</h1>
-        <p className="text-ink/50 text-sm mt-1">Money you've lent out or borrowed, until it's settled.</p>
+        <p className="text-ink/50 text-sm mt-1">
+          Money you've lent out or borrowed, until it's settled.
+          {range.cumulativeBalances ? '' : ` Showing ${range.label}.`}
+        </p>
       </header>
 
       <section className="grid grid-cols-2 gap-4">
@@ -80,17 +101,17 @@ export default function Cash() {
         </div>
         <div>
           <label className="block text-[11px] uppercase tracking-wider text-ink/45 mb-1">Person</label>
-          <input value={person} onChange={(e) => setPerson(e.target.value)}
+          <input value={person} onChange={(e) => setPerson(e.target.value)} required
             className="w-full border-b border-rule bg-transparent py-1.5 outline-none focus:border-brass" placeholder="Name" />
         </div>
         <div>
           <label className="block text-[11px] uppercase tracking-wider text-ink/45 mb-1">Amount</label>
-          <input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)}
+          <input type="number" step="0.01" min="0.01" value={amount} required onChange={(e) => setAmount(e.target.value)}
             className="w-full border-b border-rule bg-transparent py-1.5 outline-none focus:border-brass font-mono" placeholder="0.00" />
         </div>
         <div>
           <label className="block text-[11px] uppercase tracking-wider text-ink/45 mb-1">Date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          <input type="date" value={date} required onChange={(e) => setDate(e.target.value)}
             className="w-full border-b border-rule bg-transparent py-1.5 outline-none focus:border-brass" />
         </div>
         <div>
@@ -118,7 +139,7 @@ export default function Cash() {
 
       <div className="border border-rule/60 bg-white/40 md:hidden">
         {items.length === 0 && (
-          <p className="py-8 text-center text-ink/40 text-sm">Nothing here yet.</p>
+          <p className="py-8 text-center text-ink/40 text-sm">{emptyMsg}</p>
         )}
         {items.map((i) => (
           <EntryCard
@@ -158,7 +179,7 @@ export default function Cash() {
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} className="py-8 text-center text-ink/40">Nothing here yet.</td></tr>
+              <tr><td colSpan={5} className="py-8 text-center text-ink/40">{emptyMsg}</td></tr>
             )}
             {items.map((i) => (
               <tr key={i._id} className="border-b border-rule/30 last:border-0">

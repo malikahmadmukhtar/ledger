@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import ChatWidget from './components/ChatWidget.jsx'
+import PeriodBar from './components/PeriodBar.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Income from './pages/Income.jsx'
@@ -23,6 +24,7 @@ function Shell({ children }) {
     <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar />
       <main className="flex-1 px-4 py-6 pb-24 md:px-10 md:py-10 md:pb-10 max-w-6xl mx-auto w-full">
+        <PeriodBar />
         {children}
       </main>
       <MobileNav />

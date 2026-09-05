@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 import { useAuth } from '../context/AuthContext.jsx'
+import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
 import StatCard from '../components/StatCard.jsx'
 import EntryCard from '../components/EntryCard.jsx'
@@ -13,32 +14,38 @@ const PIE_COLORS = ['#A63D40', '#C79A3E', '#2F6F4E', '#6B7280', '#8B5E3C', '#7C6
 
 export default function Dashboard() {
   const { token } = useAuth()
+  const { range, getQueryParams } = usePeriod()
   const [data, setData] = useState(null)
 
   useEffect(() => {
-    api.dashboard(token).then(setData).catch(() => {})
-  }, [token])
+    setData(null)
+    const params = {
+      ...getQueryParams(),
+      ...(range.cumulativeBalances ? { cumulativeBalances: '1' } : {}),
+    }
+    api.dashboard(token, params).then(setData).catch(() => {})
+  }, [token, range.apiFrom, range.apiTo, range.isAllTime, range.cumulativeBalances])
 
   if (!data) return <p className="text-ink/40 font-mono text-sm">reading the ledger…</p>
 
   const net = data.monthNet
+  const salaryLabel = range.isDefaultMonth ? 'Salary this month' : `Salary · ${range.label}`
 
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-ink/40">This month</p>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-ink/40">{range.label}</p>
         <h1 className="font-display text-3xl mt-1">
           Net position{' '}
           <span className={net >= 0 ? 'amount-credit' : 'amount-debit'}>
             {formatMoney(net, { sign: net >= 0 ? '+' : '-' })}
           </span>
         </h1>
-        {/* Signature element: a running ink line across the header, like a ledger's tally rule */}
         <div className="mt-4 h-[3px] w-full bg-gradient-to-r from-credit via-brass to-debit rounded-full opacity-70" />
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Salary this month" value={data.monthSalary} tone="credit" />
+        <StatCard label={salaryLabel} value={data.monthSalary} tone="credit" />
         <StatCard label="Total income" value={data.monthIncome} tone="credit" />
         <StatCard label="Expenses" value={data.monthExpense} tone="debit" />
         <StatCard label="Total savings" value={data.totalSavings} tone="brass" />
@@ -46,7 +53,7 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 border border-rule/60 bg-white/40 p-5">
-          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Income vs expense, last 6 months</p>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Income vs expense trend</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={data.trend}>
               <defs>
@@ -77,7 +84,7 @@ export default function Dashboard() {
         <div className="border border-rule/60 bg-white/40 p-5">
           <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Expenses by category</p>
           {data.expenseByCategory.length === 0 ? (
-            <p className="text-ink/40 text-sm py-10 text-center">No expenses logged this month yet.</p>
+            <p className="text-ink/40 text-sm py-10 text-center">No expenses in {range.label}.</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -106,7 +113,9 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border border-rule/60 bg-white/40 p-5">
-          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Cash — open balances</p>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">
+            Cash — open balances{range.cumulativeBalances ? '' : ` · ${range.label}`}
+          </p>
           <div className="flex justify-between items-center py-2 border-b border-rule/50">
             <span className="text-sm text-ink/70">Owed to me</span>
             <span className="amount-credit text-lg">{formatMoney(data.owedToMe)}</span>
@@ -118,7 +127,9 @@ export default function Dashboard() {
         </div>
 
         <div className="border border-rule/60 bg-white/40 p-5">
-          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Savings progress</p>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">
+            Savings progress{range.cumulativeBalances ? '' : ` · ${range.label}`}
+          </p>
           {data.savingsGoals.length === 0 ? (
             <p className="text-ink/40 text-sm">No savings goals yet.</p>
           ) : (
@@ -143,10 +154,10 @@ export default function Dashboard() {
       </section>
 
       <section className="border border-rule/60 bg-white/40 p-5">
-        <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Recent entries</p>
+        <p className="text-[11px] uppercase tracking-[0.15em] text-ink/45 mb-4">Recent entries · {range.label}</p>
         <div className="md:hidden -mx-1">
           {data.recent.length === 0 && (
-            <p className="py-4 text-center text-ink/40 text-sm">No entries yet.</p>
+            <p className="py-4 text-center text-ink/40 text-sm">No entries in {range.label}.</p>
           )}
           {data.recent.map((t) => (
             <EntryCard
@@ -160,6 +171,9 @@ export default function Dashboard() {
         </div>
         <table className="w-full text-sm hidden md:table">
           <tbody>
+            {data.recent.length === 0 && (
+              <tr><td className="py-4 text-center text-ink/40">No entries in {range.label}.</td></tr>
+            )}
             {data.recent.map((t) => (
               <tr key={t._id} className="border-b border-rule/40 last:border-0">
                 <td className="py-2 text-ink/50 font-mono w-20">{shortDate(t.date)}</td>

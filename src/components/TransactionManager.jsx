@@ -1,33 +1,48 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { usePeriod } from '../context/PeriodContext.jsx'
 import { api } from '../api.js'
 import { formatMoney, shortDate } from '../format.js'
 import EntryCard from './EntryCard.jsx'
 
 export default function TransactionManager({ type, title, categories, tone }) {
   const { token } = useAuth()
+  const { range, getQueryParams } = usePeriod()
   const [items, setItems] = useState([])
   const [category, setCategory] = useState(categories[0])
   const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(range.formDate)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
 
   const toneAmount = tone === 'credit' ? 'amount-credit' : 'amount-debit'
   const sign = type === 'income' ? '+' : '-'
+  const emptyLabel = type === 'income' ? 'income' : 'expenses'
+
+  useEffect(() => {
+    setDate(range.formDate)
+  }, [range.formDate])
 
   function load() {
-    api.listTransactions(token, { type }).then(setItems).catch(() => {})
+    const params = { type, ...getQueryParams() }
+    api.listTransactions(token, params).then(setItems).catch(() => {})
   }
 
-  useEffect(load, [token, type])
+  useEffect(load, [token, type, range.apiFrom, range.apiTo, range.isAllTime])
 
   async function submit(e) {
     e.preventDefault()
     setError('')
+    if (!category?.trim()) return setError('Choose a category')
     if (!amount || Number(amount) <= 0) return setError('Enter an amount greater than 0')
     try {
-      await api.createTransaction(token, { type, category, amount: Number(amount), date, note })
+      await api.createTransaction(token, {
+        type,
+        category: category.trim(),
+        amount: Number(amount),
+        date,
+        note: note.trim(),
+      })
       setAmount('')
       setNote('')
       load()
@@ -47,7 +62,7 @@ export default function TransactionManager({ type, title, categories, tone }) {
     <div className="space-y-8">
       <header className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
         <h1 className="font-display text-3xl">{title}</h1>
-        <p className={`font-mono text-xl ${toneAmount}`}>{formatMoney(total, { sign })} <span className="text-xs text-ink/40 font-body">total logged</span></p>
+        <p className={`font-mono text-xl ${toneAmount}`}>{formatMoney(total, { sign })} <span className="text-xs text-ink/40 font-body">total · {range.label}</span></p>
       </header>
 
       <form onSubmit={submit} className="border border-rule/60 bg-white/40 p-5 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -64,7 +79,7 @@ export default function TransactionManager({ type, title, categories, tone }) {
         <div>
           <label className="block text-[11px] uppercase tracking-wider text-ink/45 mb-1">Amount</label>
           <input
-            type="number" step="0.01" min="0" value={amount}
+            type="number" step="0.01" min="0.01" value={amount} required
             onChange={(e) => setAmount(e.target.value)}
             className="w-full border-b border-rule bg-transparent py-1.5 outline-none focus:border-brass font-mono"
             placeholder="0.00"
@@ -73,7 +88,7 @@ export default function TransactionManager({ type, title, categories, tone }) {
         <div>
           <label className="block text-[11px] uppercase tracking-wider text-ink/45 mb-1">Date</label>
           <input
-            type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            type="date" value={date} required onChange={(e) => setDate(e.target.value)}
             className="w-full border-b border-rule bg-transparent py-1.5 outline-none focus:border-brass"
           />
         </div>
@@ -93,7 +108,7 @@ export default function TransactionManager({ type, title, categories, tone }) {
 
       <div className="border border-rule/60 bg-white/40 md:hidden">
         {items.length === 0 && (
-          <p className="py-8 text-center text-ink/40 text-sm">Nothing logged yet — add your first entry above.</p>
+          <p className="py-8 text-center text-ink/40 text-sm">No {emptyLabel} in {range.label}.</p>
         )}
         {items.map((t) => (
           <EntryCard
@@ -123,7 +138,7 @@ export default function TransactionManager({ type, title, categories, tone }) {
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} className="py-8 text-center text-ink/40">Nothing logged yet — add your first entry above.</td></tr>
+              <tr><td colSpan={5} className="py-8 text-center text-ink/40">No {emptyLabel} in {range.label}.</td></tr>
             )}
             {items.map((t) => (
               <tr key={t._id} className="border-b border-rule/30 last:border-0 hover:bg-white/40">
