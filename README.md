@@ -6,6 +6,16 @@ ledger for informal loans, savings goals, and a dashboard tying it together.
 **Stack:** React + Vite + Tailwind (frontend) · Netlify Functions running Express (API) ·
 MongoDB (Atlas) via Mongoose · JWT login.
 
+## Features
+
+* **Single-User Security:** Built explicitly for single-user deployment with self-locking registration (`/auth/register`) after the initial account is created.
+* **Financial Dashboard:** Real-time aggregation of income, expenses, net worth, and high-level summaries.
+* **Income & Expense Tracking:** Categorized tracking for recurring income, daily expenses, and salary management.
+* **Cash Ledger:** Track lent and borrowed money with built-in settled flags.
+* **Savings Goals:** Set goals and track incremental contributions over time.
+* **AI Assistant:**  Gemini integration for all the financial data to be asked in a chat interface.
+* **Serverless Architecture:** Fully optimized for Netlify Functions with single-file Express routing and lightweight Mongoose models.
+
 ## 1. Create a free MongoDB Atlas database
 
 1. Go to https://www.mongodb.com/cloud/atlas/register and create a free account.
